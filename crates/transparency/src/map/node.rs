@@ -61,18 +61,13 @@ impl<D: SupportedDigest, K: Debug + VisitBytes + Clone + PartialEq> Node<D, K> {
             (Some(_), Self::Empty(_)) => {
                 let mut proof: Proof<D, K, V> = self.prove(path)?;
                 proof.push(None);
-                None
+                Some(proof)
             }
             (Some(idx), Self::Fork(fork)) => {
-                let proof = fork[idx].as_ref().node().prove(path);
-                match proof {
-                    Some(mut p) => {
-                        let peer = fork[idx.opposite()].as_ref().hash();
-                        p.push(Some(peer.clone()));
-                        Some(p)
-                    }
-                    None => None,
-                }
+                let mut proof = fork[idx].as_ref().node().prove(path)?;
+                let peer = fork[idx.opposite()].as_ref().hash();
+                proof.push(Some(peer.clone()));
+                Some(proof)
             }
 
             (None, Self::Leaf(_)) => Some(Proof::new(Vec::new())),
@@ -135,7 +130,7 @@ impl<D: SupportedDigest, K: Debug + VisitBytes + Clone + PartialEq> Node<D, K> {
                             (Node::Fork(fork), true)
                         }
                         Node::Singleton(singleton) => {
-                            if singleton.key() == key {
+                            if singleton.key() == &key {
                                 let new_singleton = Node::Singleton(Singleton::new(
                                     key,
                                     value,
@@ -160,7 +155,7 @@ impl<D: SupportedDigest, K: Debug + VisitBytes + Clone + PartialEq> Node<D, K> {
                     }
                 }
                 Node::Singleton(singleton) => {
-                    if singleton.key() == key {
+                    if singleton.key() == &key {
                         let new_singleton = Singleton::new(key, value, 256 - path.index(), index);
                         (Node::Singleton(new_singleton), false)
                     } else if singleton.side != index {

@@ -13,7 +13,8 @@ async fn it_starts_with_initial_checkpoint() -> Result<()> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn it_publishes_a_component() -> Result<()> {
-    let (_server, config) = spawn_server(&root().await?, None, None).await?;
+    let root = root().await?;
+    let (_server, config) = spawn_server(&root, None, None).await?;
     test_component_publishing(&config).await?;
 
     // There should be two log entries in the registry

@@ -115,7 +115,7 @@ mod test {
             V: std::fmt::Debug + VisitBytes + Clone,
         >(
             tree: &Map<D, K, V>,
-            key: K,
+            key: &K,
             value: V,
         ) {
             let proof = tree.prove(key.clone()).unwrap();
@@ -128,15 +128,15 @@ mod test {
         assert!(first.prove("qux").is_none());
 
         let second = first.insert("foo", "bar");
-        check(&second, "foo", "bar");
+        check(&second, &"foo", "bar");
         assert!(second.prove("baz").is_none());
         assert!(second.prove("qux").is_none());
         let third = second.insert("bar", "bat");
-        check(&third, "foo", "bar");
-        check(&third, "bar", "bat");
+        check(&third, &"foo", "bar");
+        check(&third, &"bar", "bat");
         assert!(third.prove("qux").is_none());
 
         let fourth = third.insert("foo", "qux");
-        check(&fourth, "foo", "qux");
+        check(&fourth, &"foo", "qux");
     }
 }

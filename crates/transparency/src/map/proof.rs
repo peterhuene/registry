@@ -60,7 +60,7 @@ where
     }
 
     /// Computes the root obtained by evaluating this inclusion proof with the given leaf
-    pub fn evaluate(&self, key: K, value: &V) -> Hash<D> {
+    pub fn evaluate(&self, key: &K, value: &V) -> Hash<D> {
         // Get the path from bottom to top.
         let path = ReversePath::<D>::new(key);
 
@@ -71,17 +71,17 @@ where
         // // Loop over each side and peer.
         let peers = fill.chain(self.peers.iter().cloned());
         for (i, (side, peer)) in path.zip(peers).enumerate() {
-            match &peer {
-                Some(_) => {
+            match peer {
+                Some(peer) => {
                     hash = match side {
-                        Side::Left => hash_branch(hash, peer.unwrap()),
-                        Side::Right => hash_branch(peer.unwrap(), hash),
+                        Side::Left => hash_branch(&hash, &peer),
+                        Side::Right => hash_branch(&peer, &hash),
                     };
                 }
                 None => match side {
-                    Side::Left => hash = hash_branch(hash, D::empty_tree_hash(i)),
+                    Side::Left => hash = hash_branch(&hash, &D::empty_tree_hash(i)),
                     Side::Right => {
-                        hash = hash_branch(D::empty_tree_hash(i), hash);
+                        hash = hash_branch(&D::empty_tree_hash(i), &hash);
                     }
                 },
             }
@@ -114,9 +114,9 @@ mod tests {
 
         let root = c.root().clone();
 
-        let p = c.prove(&"baz").unwrap();
+        let p = c.prove("baz").unwrap();
 
-        assert_eq!(root, p.evaluate("baz", &b"bat".as_slice()));
-        assert_ne!(root, p.evaluate("other", &b"bar".as_slice()));
+        assert_eq!(root, p.evaluate(&"baz", &b"bat".as_slice()));
+        assert_ne!(root, p.evaluate(&"other", &b"bar".as_slice()));
     }
 }

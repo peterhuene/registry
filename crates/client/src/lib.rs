@@ -14,7 +14,7 @@ use thiserror::Error;
 use warg_api::v1::{
     fetch::{FetchError, FetchLogsRequest, FetchLogsResponse},
     package::{PackageError, PackageRecord, PackageRecordState, PublishRecordRequest},
-    proof::{ConsistencyRequest, InclusionRequest},
+    proof::{ConsistencyRequest, InclusionRequest, ProofError},
 };
 use warg_crypto::{
     hash::{AnyHash, Hash, Sha256},
@@ -465,7 +465,12 @@ impl<R: RegistryStorage, C: ContentStorage> Client<R, C> {
                     checkpoint: Cow::Borrowed(checkpoint.as_ref()),
                     leafs: Cow::Borrowed(&leafs),
                 })
-                .await?;
+                .await
+                .map_err(|e| {
+                    ClientError::translate_log_not_found(e, |id| {
+                        packages.get(id).map(|p| p.id.clone())
+                    })
+                })?;
         }
 
         if let Some(from) = self.registry.load_checkpoint().await? {
@@ -474,7 +479,12 @@ impl<R: RegistryStorage, C: ContentStorage> Client<R, C> {
                     from: Cow::Borrowed(&from.as_ref().log_root),
                     to: Cow::Borrowed(&checkpoint.as_ref().log_root),
                 })
-                .await?;
+                .await
+                .map_err(|e| {
+                    ClientError::translate_log_not_found(e, |id| {
+                        packages.get(id).map(|p| p.id.clone())
+                    })
+                })?;
         }
 
         self.registry.store_operator(operator).await?;
@@ -710,6 +720,13 @@ pub enum ClientError {
         id: PackageId,
     },
 
+    /// Failed to prove inclusion of a package.
+    #[error("failed to prove inclusion of package log `{id}`")]
+    PackageLogNotIncluded {
+        /// The identifier of the package that failed an inclusion proof.
+        id: PackageId,
+    },
+
     /// A publish operation was rejected.
     #[error("the publishing of package `{id}` was rejected due to: {reason}")]
     PublishRejected {
@@ -744,6 +761,11 @@ impl ClientError {
             | api::ClientError::Package(PackageError::LogNotFound(id)) => {
                 if let Some(id) = lookup(id) {
                     return Self::PackageDoesNotExist { id };
+                }
+            }
+            api::ClientError::Proof(ProofError::PackageLogNotIncluded(id)) => {
+                if let Some(id) = lookup(id) {
+                    return Self::PackageLogNotIncluded { id };
                 }
             }
             _ => {}

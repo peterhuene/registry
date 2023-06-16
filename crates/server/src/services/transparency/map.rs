@@ -49,8 +49,7 @@ pub fn spawn(input: Input) -> Output {
                 summary = log_summary_rx.recv() => {
                     if let Some(summary) = summary {
                         let leaf = summary.leaf;
-                        let hash = leaf.log_id.0.clone().try_into().unwrap();
-                        map = map.insert(hash, MapLeaf { record_id: leaf.record_id.clone() });
+                        map = map.insert(leaf.log_id.clone(), MapLeaf { record_id: leaf.record_id.clone() });
                         leaves.push(leaf);
 
                         current = Some(MapCheckpoint {

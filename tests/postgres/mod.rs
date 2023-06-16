@@ -60,7 +60,7 @@ async fn it_works_with_postgres() -> TestResult {
         PackageId::new("test:unauthorized-key")?,
     ];
 
-    // There should be two log entries in the registry
+    // There should be three log entries in the registry
     let client = api::Client::new(config.default_url.as_ref().unwrap())?;
     let checkpoint = client.latest_checkpoint().await?;
     assert_eq!(

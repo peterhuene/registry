@@ -203,9 +203,8 @@ impl CoreService {
         while let Some(res) = initial.next().await {
             let InitialLeaf { leaf, checkpoint } = res?;
             data.log.push(&leaf);
-            let new_key = leaf.log_id.0.clone().try_into().unwrap();
             data.map = data.map.insert(
-                new_key,
+                leaf.log_id.clone(),
                 MapLeaf {
                     record_id: leaf.record_id.clone(),
                 },
@@ -213,6 +212,7 @@ impl CoreService {
 
             match checkpoint {
                 Some(checkpoint) => {
+                    assert!(data.leaves.is_empty());
                     if last_checkpoint.as_ref() != Some(&checkpoint) {
                         data.map_data.insert(data.map.clone());
                         last_checkpoint = Some(checkpoint);
@@ -248,15 +248,12 @@ impl CoreService {
 
         store.validate_operator_record(&log_id, &record_id).await?;
 
-        let leaf = LogLeaf {
-            log_id: log_id.clone(),
-            record_id,
-        };
+        let leaf = LogLeaf { log_id, record_id };
         let mut data = InitializationData::default();
         data.log.push(&leaf);
 
         data.map = data.map.insert(
-            log_id.clone(),
+            leaf.log_id.clone(),
             MapLeaf {
                 record_id: leaf.record_id.clone(),
             },
